@@ -114,28 +114,25 @@ class Corpus(object):
         """
         print("Initializing...")
 
-        if random:
-            self.initialize_randomly(number_of_topics)
-        else:
+        if not random:
             self.initialize_uniformly(number_of_topics)
+        else:
+            self.initialize_randomly(number_of_topics)
 
     def expectation_step(self):
         """ The E-step updates P(z | w, d)
         """
         print("E step:")
-        number = self.number_of_documents
-        size = self.vocabulary_size
 
-        self.topic_prob = np.ones((number, self.topic_word_prob.shape[0], size), dtype=np.float)
-        for i in range(number):
-            for j in range(size):
-                prob = self.document_topic_prob[i,:] * self.topic_word_prob[:,j]
-                
-                if sum(prob) == 0:
-                    print("sum of topic prob is 0. Exit.")
-                    exit(0)
-                prob = prob/sum(prob) # normalize
-                self.topic_prob[i,:,j] = prob
+        self.topic_prob = np.ones((self.number_of_documents, self.topic_word_prob.shape[0], 0, self.vocabulary_size), dtype=np.float)
+        for n in range(0, self.number_of_documents):
+            for s in range(0, self.vocabulary_size):
+                prob = self.document_topic_prob[n,:] * self.topic_word_prob[:,s]
+                counter = 0
+                for p in prob:
+                    counter += p
+                prob = prob / counter 
+                self.topic_prob[n][:,s] = prob
             
 
     def maximization_step(self, number_of_topics):
