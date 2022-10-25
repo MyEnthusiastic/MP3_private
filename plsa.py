@@ -1,3 +1,4 @@
+from itertools import count
 import numpy as np
 import math
 
@@ -45,11 +46,11 @@ class Corpus(object):
         
         Update self.number_of_documents
         """
-        # #############################
-        # your code here
-        # #############################
+        with open(self.documents_path) as f:
+            lines = f.readlines()       
+        self.documents = [doc.split() for doc in lines]
+        self.number_of_documents = len(self.documents)
         
-        pass    # REMOVE THIS
 
     def build_vocabulary(self):
         """
@@ -58,11 +59,10 @@ class Corpus(object):
 
         Update self.vocabulary_size
         """
-        # #############################
-        # your code here
-        # #############################
+
+        self.vocabulary = list(set([voc for elem in self.documents for voc in elem]))
+        self.vocabulary_size = len(self.vocabulary) 
         
-        pass    # REMOVE THIS
 
     def build_term_doc_matrix(self):
         """
@@ -71,11 +71,13 @@ class Corpus(object):
 
         self.term_doc_matrix[i][j] is the count of term j in document i
         """
-        # ############################
-        # your code here
-        # ############################
-        
-        pass    # REMOVE THIS
+        num = self.number_of_documents
+        size = self.vocabulary_size
+        matrix = np.ones([num, size])
+        for i in range(0, num):
+            for j in range(0, size):
+                matrix[i,j] = self.documents[i].count(self.vocabulary[j])
+        self.term_doc_matrix = matrix  
 
 
     def initialize_randomly(self, number_of_topics):
@@ -86,11 +88,12 @@ class Corpus(object):
         Don't forget to normalize! 
         HINT: you will find numpy's random matrix useful [https://docs.scipy.org/doc/numpy-1.15.0/reference/generated/numpy.random.random.html]
         """
-        # ############################
-        # your code here
-        # ############################
 
-        pass    # REMOVE THIS
+        self.document_topic_prob = np.random.random_sample((self.number_of_documents, number_of_topics))
+        self.document_topic_prob = normalize(self.document_topic_prob)
+
+        self.topic_word_prob = np.random.random_sample((number_of_topics, len(self.vocabulary)))
+        self.topic_word_prob = normalize(self.topic_word_prob)
         
 
     def initialize_uniformly(self, number_of_topics):
@@ -120,33 +123,48 @@ class Corpus(object):
         """ The E-step updates P(z | w, d)
         """
         print("E step:")
-        
-        # ############################
-        # your code here
-        # ############################
+        number = self.number_of_documents
+        size = self.vocabulary_size
 
-        pass    # REMOVE THIS
+        self.topic_prob = np.ones((number, self.topic_word_prob.shape[0], size), dtype=np.float)
+        for i in range(number):
+            for j in range(size):
+                prob = self.document_topic_prob[i,:] * self.topic_word_prob[:,j]
+                
+                if sum(prob) == 0:
+                    print("sum of topic prob is 0. Exit.")
+                    exit(0)
+                prob = prob/sum(prob) # normalize
+                self.topic_prob[i,:,j] = prob
             
 
     def maximization_step(self, number_of_topics):
         """ The M-step updates P(w | z)
         """
         print("M step:")
-        
-        # update P(w | z)
-        
-        # ############################
-        # your code here
-        # ############################
+        for w in range(self.vocabulary_size):
+            for t in range(number_of_topics):
+                counter = 0
+                for d in range(self.number_of_documents):
+                    term_doc_V = self.term_doc_matrix[d][w]
+                    topic_prob_V = self.topic_prob[d][t][w]
+                    counter = counter + term_doc_V * topic_prob_V
+                self.topic_word_prob[t][w] = counter
 
-        
+        self.topic_word_prob = normalize(self.topic_word_prob)
+
         # update P(z | d)
+        for t in range(number_of_topics):
+            for d in range(self.number_of_documents):
+                counter = 0
+                for w in range(self.vocabulary_size):
+                    term_doc_V = self.term_doc_matrix[d][w]
+                    topic_prob_V = self.topic_prob[d][t][w]
+                    counter = counter + term_doc_V * topic_prob_V
+                self.document_topic_prob[d][t] = counter
 
-        # ############################
-        # your code here
-        # ############################
+        self.document_topic_prob = normalize(self.document_topic_prob)
         
-        pass    # REMOVE THIS
 
 
     def calculate_likelihood(self, number_of_topics):
@@ -156,11 +174,16 @@ class Corpus(object):
         Append the calculated log-likelihood to self.likelihoods
 
         """
-        # ############################
-        # your code here
-        # ############################
+        currLog = 0
+        for i in range(self.number_of_documents):
+            for j in range(self.vocabulary_size):
+                counter = 0
+                for k in range(number_of_topics):
+                    counter = counter + self.document_topic_prob[i][k] * self.topic_word_prob[k][j]
+                currLog += self.term_doc_matrix[i][j] * math.log(counter,2)    
+                
+        self.likelihoods.append(currLog)        
         
-        return
 
     def plsa(self, number_of_topics, max_iter, epsilon):
 
@@ -186,11 +209,14 @@ class Corpus(object):
         for iteration in range(max_iter):
             print("Iteration #" + str(iteration + 1) + "...")
 
-            # ############################
-            # your code here
-            # ############################
-
-            pass    # REMOVE THIS
+            self.expectation_step(number_of_topics)
+            self.maximization_step(number_of_topics)
+            self.calculate_likelihood(number_of_topics)
+            
+            if (iteration >=1 and abs(self.likelihoods[iteration] - self.likelihoods[iteration-1]) < epsilon):
+                break
+            else:
+                continue
 
 
 
