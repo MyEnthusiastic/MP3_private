@@ -207,7 +207,7 @@ class Corpus(object):
         current_likelihood = 0.0
 
         for iteration in range(max_iter):
-            print("Iteration #" + str(iteration + 1) + "...")
+
 
             self.expectation_step()
             self.maximization_step(number_of_topics)
