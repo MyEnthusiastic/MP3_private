@@ -209,7 +209,7 @@ class Corpus(object):
         for iteration in range(max_iter):
             print("Iteration #" + str(iteration + 1) + "...")
 
-            self.expectation_step(number_of_topics)
+            self.expectation_step()
             self.maximization_step(number_of_topics)
             self.calculate_likelihood(number_of_topics)
             
